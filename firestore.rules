@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token.email == 'sanjeevkarthikeya18@gmail.com';
+    }
+
+    function isGovAdmin() {
+      return isBootstrappedAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['government_admin', 'owner']) &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verificationStatus == 'approved')
+      );
+    }
+
+    function isFieldWorker() {
+      return isGovAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'field_worker') &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verificationStatus == 'approved')
+      );
+    }
+
+    function isCommunityAdmin() {
+      return isGovAdmin() || (
+        isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'community_admin') &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.verificationStatus == 'approved')
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Users collection - Strict Role & Verification Protection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isGovAdmin();
+      
+      // Prevent privilege escalation on create: Users cannot self-grant approved elevated roles
+      allow create: if isSignedIn() && request.auth.uid == userId && (
+        isBootstrappedAdmin() || 
+        (request.resource.data.role == 'citizen' && request.resource.data.verificationStatus == 'approved') ||
+        (request.resource.data.verificationStatus == 'pending')
+      );
+
+      // Prevent privilege escalation on update: Users cannot alter their own role or verificationStatus
+      allow update: if isBootstrappedAdmin() || (
+        isOwner(userId) && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'verificationStatus']))
+      );
+
+      allow delete: if isGovAdmin();
+    }
+
+    // Communities (Public registry view of registered RWAs)
+    match /communities/{communityId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isGovAdmin() || (isSignedIn() && resource.data.adminId == request.auth.uid);
+    }
+
+    // Community Members
+    match /communityMembers/{memberId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isGovAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // Individual Reports (Public can submit; read restricted to non-sensitive fields or owners/admins)
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isGovAdmin() || isFieldWorker() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isGovAdmin();
+    }
+
+    // Community Reports
+    match /communityReports/{communityReportId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isGovAdmin() || (isSignedIn() && resource.data.submittedBy == request.auth.uid);
+    }
+
+    // Incidents (Public high-level incident tracking)
+    match /incidents/{incidentId} {
+      allow read: if true;
+      allow write: if isGovAdmin() || isFieldWorker();
+    }
+
+    // Infrastructure Assets (Restricted to authenticated municipal personnel)
+    match /infrastructureAssets/{assetId} {
+      allow read: if isSignedIn() && (isGovAdmin() || isFieldWorker());
+      allow write: if isGovAdmin();
+    }
+
+    // Clusters (AI-generated correlation groups)
+    match /clusters/{clusterId} {
+      allow read: if true;
+      allow write: if isGovAdmin();
+    }
+
+    // Work Orders (Restricted to authenticated municipal staff)
+    match /workOrders/{workOrderId} {
+      allow read: if isSignedIn() && (isGovAdmin() || isFieldWorker());
+      allow create, delete: if isGovAdmin();
+      allow update: if isGovAdmin() || (isFieldWorker() && resource.data.workerId == request.auth.uid);
+    }
+
+    // Repairs (Restricted to authenticated municipal staff)
+    match /repairs/{repairId} {
+      allow read: if isSignedIn() && (isGovAdmin() || isFieldWorker());
+      allow create: if isGovAdmin() || (isFieldWorker() && request.resource.data.workerId == request.auth.uid);
+      allow update, delete: if isGovAdmin();
+    }
+
+    // Repair Professionals
+    match /repairProfessionals/{professionalId} {
+      allow read: if true;
+      allow write: if isGovAdmin();
+    }
+
+    // Contact Requests (24h Unresolved contact disclosure audit)
+    match /contactRequests/{requestId} {
+      allow read: if isGovAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Risk Assessments
+    match /riskAssessments/{assessmentId} {
+      allow read: if true;
+      allow write: if isGovAdmin();
+    }
+
+    // Audit Logs (Restricted to Government Admins)
+    match /auditLogs/{logId} {
+      allow read: if isGovAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // Government Verification Applications (Admin reviewed)
+    match /governmentVerificationApplications/{appId} {
+      allow read: if isGovAdmin();
+      allow create: if true;
+      allow update, delete: if isGovAdmin();
+    }
+  }
+}

@@ -1,0 +1,356 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access control",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["citizen", "community_admin", "government_admin", "field_worker"] },
+        "phoneNumber": { "type": "string", "maxLength": 32 },
+        "communityId": { "type": "string", "maxLength": 128 },
+        "department": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "role", "displayName"]
+    },
+    "Community": {
+      "title": "Community",
+      "description": "Apartment association, commercial establishment, or residential ward",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "enum": ["apartment_association", "residential_colony", "restaurant_cluster", "commercial_hub", "ward"] },
+        "area": { "type": "string", "maxLength": 128 },
+        "city": { "type": "string", "maxLength": 128 },
+        "adminId": { "type": "string", "maxLength": 128 },
+        "estimatedPopulation": { "type": "number" },
+        "contactEmail": { "type": "string", "maxLength": 256 },
+        "contactPhone": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "type", "area", "adminId"]
+    },
+    "CommunityMember": {
+      "title": "CommunityMember",
+      "description": "Resident or member enrolled in a community",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "communityId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "unitNumber": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["member", "admin"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "communityId", "userId"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Citizen water infrastructure problem report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "trackingCode": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "enum": ["drainage_waterlogging", "water_supply_pipeline", "water_quality"] },
+        "problemType": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "generalLocation": { "type": "string", "maxLength": 256 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 2048 },
+        "communityId": { "type": "string", "maxLength": 128 },
+        "urgency": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "status": { "type": "string", "enum": ["submitted", "under_review", "incident_linked", "in_progress", "resolved", "rejected"] },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "incidentId": { "type": "string", "maxLength": 128 },
+        "aiSummary": { "type": "string", "maxLength": 1000 },
+        "aiPrioritySuggestion": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "aiSuggestedCategory": { "type": "string", "maxLength": 100 },
+        "aiConfidence": { "type": "number" },
+        "isCommunityShared": { "type": "boolean" },
+        "isGpsCaptured": { "type": "boolean" },
+        "gpsAccuracyMeters": { "type": "number" },
+        "assignedProfessionalId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "trackingCode", "category", "description", "lat", "lng", "status"]
+    },
+    "CommunityReport": {
+      "title": "CommunityReport",
+      "description": "Consolidated report submitted by an apartment association or community body",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "trackingCode": { "type": "string", "maxLength": 64 },
+        "communityId": { "type": "string", "maxLength": 128 },
+        "communityName": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "enum": ["drainage_waterlogging", "water_supply_pipeline", "water_quality"] },
+        "problemType": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "area": { "type": "string", "maxLength": 150 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "affectedHouseholds": { "type": "number" },
+        "affectedPopulation": { "type": "number" },
+        "supportingReportIds": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 2048 },
+        "status": { "type": "string", "enum": ["submitted", "acknowledged", "incident_created", "in_progress", "resolved", "rejected"] },
+        "incidentId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "submittedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "trackingCode", "communityId", "communityName", "category", "description", "status"]
+    },
+    "Incident": {
+      "title": "Incident",
+      "description": "Master underlying infrastructure problem linking reports, clusters, and assets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "incidentNumber": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "enum": ["drainage_waterlogging", "water_supply_pipeline", "water_quality"] },
+        "severity": { "type": "string", "enum": ["minor", "moderate", "severe", "critical"] },
+        "status": { "type": "string", "enum": ["open", "investigating", "work_assigned", "repair_in_progress", "verified_resolved", "closed"] },
+        "area": { "type": "string", "maxLength": 150 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "reportCount": { "type": "number" },
+        "linkedAssetIds": { "type": "string", "maxLength": 1000 },
+        "assignedWorkerId": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 3000 },
+        "aiActionBrief": { "type": "string", "maxLength": 2000 },
+        "recurrenceScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "incidentNumber", "title", "category", "severity", "status", "lat", "lng"]
+    },
+    "InfrastructureAsset": {
+      "title": "InfrastructureAsset",
+      "description": "Municipal water pipeline, manhole, valve, or stormwater drain",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "assetCode": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "enum": ["pipeline", "manhole", "valve", "storm_drain", "pump_station"] },
+        "name": { "type": "string", "maxLength": 150 },
+        "zone": { "type": "string", "maxLength": 100 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "coordinates": { "type": "string", "maxLength": 4000 },
+        "material": { "type": "string", "maxLength": 64 },
+        "diameterMm": { "type": "number" },
+        "installationYear": { "type": "number" },
+        "verificationStatus": { "type": "string", "enum": ["verified", "unverified", "estimated"] },
+        "condition": { "type": "string", "enum": ["good", "fair", "deteriorated", "critical"] },
+        "connectedTo": { "type": "string", "maxLength": 500 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "assetCode", "type", "name", "verificationStatus", "condition"]
+    },
+    "Cluster": {
+      "title": "Cluster",
+      "description": "AI-detected geographic cluster of water complaints",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clusterName": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 64 },
+        "area": { "type": "string", "maxLength": 150 },
+        "centroidLat": { "type": "number" },
+        "centroidLng": { "type": "number" },
+        "radiusMeters": { "type": "number" },
+        "reportCount": { "type": "number" },
+        "reportIds": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["suggested", "confirmed", "merged", "split", "rejected"] },
+        "aiExplanation": { "type": "string", "maxLength": 1500 },
+        "probableCause": { "type": "string", "maxLength": 500 },
+        "linkedIncidentId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clusterName", "centroidLat", "centroidLng", "status"]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Municipal dispatch order assigned to field workers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "incidentId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "emergency"] },
+        "status": { "type": "string", "enum": ["assigned", "in_progress", "pending_review", "verified_completed", "reopened"] },
+        "workerId": { "type": "string", "maxLength": 128 },
+        "workerName": { "type": "string", "maxLength": 128 },
+        "area": { "type": "string", "maxLength": 150 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "instructions": { "type": "string", "maxLength": 2000 },
+        "targetCompletionDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderNumber", "incidentId", "priority", "status", "workerId"]
+    },
+    "Repair": {
+      "title": "Repair",
+      "description": "Field worker inspection & repair record documenting actual fault locations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "workOrderId": { "type": "string", "maxLength": 128 },
+        "incidentId": { "type": "string", "maxLength": 128 },
+        "workerId": { "type": "string", "maxLength": 128 },
+        "actualFaultLat": { "type": "number" },
+        "actualFaultLng": { "type": "number" },
+        "faultType": { "type": "string", "maxLength": 128 },
+        "componentAffected": { "type": "string", "maxLength": 128 },
+        "inspectionNotes": { "type": "string", "maxLength": 2500 },
+        "actionTaken": { "type": "string", "maxLength": 2500 },
+        "beforeImageUrl": { "type": "string", "maxLength": 2048 },
+        "afterImageUrl": { "type": "string", "maxLength": 2048 },
+        "completionStatus": { "type": "string", "enum": ["temporary_fix", "permanent_repair", "replacement_required"] },
+        "followUpRequired": { "type": "boolean" },
+        "materialsUsed": { "type": "string", "maxLength": 500 },
+        "completedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "workOrderId", "workerId", "actualFaultLat", "actualFaultLng", "faultType", "actionTaken"]
+    },
+    "RepairProfessional": {
+      "title": "RepairProfessional",
+      "description": "Verified repair specialist (plumbing, pipelines, drainage, manholes)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "agencyName": { "type": "string", "maxLength": 150 },
+        "expertise": { "type": "string", "enum": ["plumbing", "pipeline_specialist", "drainage_cleaning", "sanitation_drainage", "manhole_maintenance", "water_supply_team"] },
+        "expertiseLabel": { "type": "string", "maxLength": 100 },
+        "verificationStatus": { "type": "string", "enum": ["verified", "pending"] },
+        "availability": { "type": "string", "enum": ["available", "on_call", "busy"] },
+        "experienceYears": { "type": "number" },
+        "phone": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["id", "name", "expertise", "verificationStatus"]
+    },
+    "ContactRequest": {
+      "title": "ContactRequest",
+      "description": "Audit record of 24h unresolved report contact disclosures",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "reportId": { "type": "string", "maxLength": 128 },
+        "trackingCode": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "professionalId": { "type": "string", "maxLength": 128 },
+        "requestedAt": { "type": "string", "format": "date-time" },
+        "disclosed": { "type": "boolean" }
+      },
+      "required": ["id", "reportId", "trackingCode", "professionalId", "requestedAt"]
+    },
+    "RiskAssessment": {
+      "title": "RiskAssessment",
+      "description": "Predictive risk evaluation for geographic areas and infrastructure zones",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "zoneName": { "type": "string", "maxLength": 150 },
+        "area": { "type": "string", "maxLength": 150 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "recurrenceRiskScore": { "type": "number" },
+        "recurrenceTier": { "type": "string", "enum": ["low", "moderate", "high", "critical"] },
+        "nearbyRiskScore": { "type": "number" },
+        "nearbyTier": { "type": "string", "enum": ["low", "moderate", "high", "critical"] },
+        "hotspotType": { "type": "string", "enum": ["existing_hotspot", "emerging_hotspot", "predicted_hotspot"] },
+        "contributingFactors": { "type": "string", "maxLength": 1000 },
+        "dataGaps": { "type": "string", "maxLength": 500 },
+        "recommendations": { "type": "string", "maxLength": 1500 },
+        "calculatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "zoneName", "area", "recurrenceRiskScore", "nearbyRiskScore", "hotspotType"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Government accountability and actions audit trail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorEmail": { "type": "string", "maxLength": 256 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetEntity": { "type": "string", "maxLength": 100 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 2000 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "actorId", "action", "targetEntity", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile with role validation"
+    },
+    "/communities/{communityId}": {
+      "schema": { "$ref": "#/entities/Community" },
+      "description": "Residential associations and wards"
+    },
+    "/communityMembers/{memberId}": {
+      "schema": { "$ref": "#/entities/CommunityMember" },
+      "description": "Membership in communities"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Citizen infrastructure problem reports"
+    },
+    "/communityReports/{communityReportId}": {
+      "schema": { "$ref": "#/entities/CommunityReport" },
+      "description": "Consolidated reports from communities"
+    },
+    "/incidents/{incidentId}": {
+      "schema": { "$ref": "#/entities/Incident" },
+      "description": "Municipal infrastructure incident entities"
+    },
+    "/infrastructureAssets/{assetId}": {
+      "schema": { "$ref": "#/entities/InfrastructureAsset" },
+      "description": "Physical pipelines, manholes, and valves"
+    },
+    "/clusters/{clusterId}": {
+      "schema": { "$ref": "#/entities/Cluster" },
+      "description": "AI-detected incident clusters"
+    },
+    "/workOrders/{workOrderId}": {
+      "schema": { "$ref": "#/entities/WorkOrder" },
+      "description": "Field worker repair assignments"
+    },
+    "/repairs/{repairId}": {
+      "schema": { "$ref": "#/entities/Repair" },
+      "description": "Actual inspection and repair documentation"
+    },
+    "/repairProfessionals/{professionalId}": {
+      "schema": { "$ref": "#/entities/RepairProfessional" },
+      "description": "Registered and verified repair specialists"
+    },
+    "/contactRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/ContactRequest" },
+      "description": "Audit requests for 24h unresolved contact disclosures"
+    },
+    "/riskAssessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/RiskAssessment" },
+      "description": "Predictive risk calculations"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Government audit trail"
+    }
+  }
+}
